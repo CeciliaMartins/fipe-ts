@@ -1,15 +1,12 @@
 import SelectComponent from "../components/Select/SelectComponent";
 import React from "react";
-import { Button, Box, CircularProgress, Grid } from "@mui/material";
+import { Divider, Button, List, ListItem, Grid, Typography, ListItemText, Avatar, ListItemAvatar } from "@mui/material";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
-import axios from "axios";
-import { IValuesVehicle } from "../interfaces/IValuesVehicle";
 import { ISelectOptions } from "../interfaces/ISelectOptions";
-import { IResponseBrand } from "../interfaces/IResponseBrand";
-import { IResponseYear } from "../interfaces/IResponseYear";
-import { IResponseModel } from "../interfaces/IResponseModel";
 import styled from "styled-components";
+import { FipeService } from '../services/index'
+import { IValuesVehicle } from "interfaces/IValuesVehicle";
 
 export const Container = styled.div`
  display: flex;
@@ -19,88 +16,50 @@ export const Container = styled.div`
   
 `;
 
-
-
 function Fipe({ brands }: { brands: Array<ISelectOptions> }) {
   const filters: Array<ISelectOptions> = [
     { value: "carros", label: "Carros" },
     { value: "motos", label: "Motos" },
     { value: "caminhoes", label: "Caminhoes" },
   ];
-  const [brandsOptions, setBrandsOptions] = React.useState(brands);
+  const [brandsOptions, setBrandsOptions] = React.useState<Array<ISelectOptions> | []>(brands);
   const [modelsOptions, setModelsOptions] = React.useState([]);
   const [yearsOptions, setYearsOptions] = React.useState([]);
   const [brand, setBrand] = React.useState("");
   const [model, setModel] = React.useState("");
   const [year, setYear] = React.useState("");
-  const [valuesVehicle, setValuesVehicle] = React.useState({});
+  const [valuesVehicle, setValuesVehicle] = React.useState<IValuesVehicle | undefined>({});
   const [loading, setLoading] = React.useState(false);
-
   const [filter, setFilter] = React.useState("carros");
+  const [showResultCard, setShowResultCard] = React.useState(false);
 
   const loadBrands = async (typeVehicle: string) => {
-    const res = await axios.get(
-      ` https://parallelum.com.br/fipe/api/v1/${typeVehicle}/marcas`
-    );
-    const data = res.data.map((x: IResponseBrand) => ({
-      value: x.codigo,
-      label: x.nome,
-    }));
+    const data = await FipeService.loadBrandsService(typeVehicle);
     setBrandsOptions(data);
   };
 
   const loadModelsAndYears = async (brand: string) => {
     setLoading(true);
-
-    const res = await axios.get(
-      ` https://parallelum.com.br/fipe/api/v1/${filter}/marcas/${brand}/modelos`
-    );
-    const dataModels = res.data.modelos.map((x: IResponseModel) => ({
-      value: x.codigo,
-      label: x.nome,
-    }));
+    const dataModels = await FipeService.loadModelsAndYearsService(brand, filter);
     setModelsOptions(dataModels);
     setLoading(false);
   };
 
   const loadYears = async (model: string) => {
-    const res = await axios.get(
-      `https://parallelum.com.br/fipe/api/v1/${filter}/marcas/${brand}/modelos/${model}/anos`
-    );
-
-    const dataYears = res.data.map((x: IResponseYear) => ({
-      value: x.codigo,
-      label: x.nome,
-    }));
-
+    const dataYears = await FipeService.loadYearsService(filter, brand, model);
     setYearsOptions(dataYears);
   };
 
   const loadPriceVehicles = async (year: string) => {
-    const res = await axios.get(
-      `https://parallelum.com.br/fipe/api/v1/${filter}/marcas/${brand}/modelos/${model}/anos/${year}`
-    );
-    const data = res.data;
-
-    const values: IValuesVehicle = {
-      price: data.Valor,
-      branch: data.Marca,
-      model: data.Modelo,
-      yearModel: data.AnoModelo,
-      fuel: data.Combustivel,
-      codeFipe: data.CodigoFipe,
-      mounthReference: data.MesReferencia,
-      typeVehicle: data.TipoVeiculo,
-      acronymFuel: data.SiglaCombustivel,
-    };
-
-    setValuesVehicle(values);
+    const data: IValuesVehicle = await FipeService.loadPriceVehiclesService(filter, brand, model, year);
+    setValuesVehicle(data);
   };
 
   const clearFields = () => {
     setModel("");
     setYear("");
-    setValuesVehicle("");
+    setBrand("");
+    setValuesVehicle({});
     setBrandsOptions([]);
     setModelsOptions([]);
     setYearsOptions([]);
@@ -127,6 +86,17 @@ function Fipe({ brands }: { brands: Array<ISelectOptions> }) {
     setYear(value);
     loadPriceVehicles(value);
   };
+
+  const showResult = () => {
+    setShowResultCard(true);
+  }
+
+  const back = () => {
+    setFilter("carros");
+    loadBrands("carros");
+    clearFields();
+    setShowResultCard(false);
+  }
 
   const ContainerMain = styled.div`
     display: flex;
@@ -183,95 +153,167 @@ function Fipe({ brands }: { brands: Array<ISelectOptions> }) {
   return (
     <ContainerMain>
       <Stack spacing={1} alignItems="center">
-        <Card>
-          <Title>Tabela Fipe de Carros </Title>
-          <SubTitle>Consulte um valor de um carro de forma gratuita </SubTitle>
-          <Text>Qual veículo você gostaria de comprar ou vender?</Text>
-          <Stack spacing={1} alignItems="center" marginBottom={4}>
-            <Stack direction="row" spacing={1}>
-              {filters.map((ftr: ISelectOptions, i: number) => (
-                <Chip
-                  key={i}
-                  label={ftr.label}
-                  color="primary"
-                  size="medium"
-                  variant={ftr.value == filter ? undefined : "outlined"}
-                  onClick={() => {
-                    handleClickFilter(ftr.value);
-                  }}
-                />
-              ))}
+        {showResultCard == false ? (
+          <Card>
+            <Title>Tabela Fipe de Carros </Title>
+            <SubTitle>Consulte um valor de um carro de forma gratuita </SubTitle>
+            <Text>Qual veículo você gostaria de comprar ou vender?</Text>
+            <Stack spacing={1} alignItems="center" marginBottom={4}>
+              <Stack direction="row" spacing={1}>
+                {filters.map((ftr: ISelectOptions, i: number) => (
+                  <Chip
+                    key={i}
+                    label={ftr.label}
+                    color="primary"
+                    size="medium"
+                    variant={ftr.value == filter ? undefined : "outlined"}
+                    onClick={() => {
+                      handleClickFilter(ftr.value);
+                    }}
+                  />
+                ))}
+              </Stack>
             </Stack>
-          </Stack>
-          <Grid
-            container
-            spacing={{ xs: 2, md: 3 }}
-            columns={{ xs: 4, sm: 8, md: 12 }}
-            margin={2}
-            alignItems="center"
-          >
-            <SelectComponent
-              label="Marca"
-              value={brand}
-              options={brandsOptions}
-              handleChange={(e) => {
-                handleChangeBrand(e.target.value);
-              }}
-              minWidth={350}
-              margin={1}
-            />
-            <SelectComponent
-              label="Modelo"
-              value={model}
-              options={modelsOptions}
-              handleChange={(e) => {
-                handleChangeModel(e.target.value);
-              }}
-              minWidth={350}
-              msgNone="Seleciona uma marca"
-              margin={1}
-            />
+            <Grid
+              container
+              spacing={{ xs: 2, md: 3 }}
+              columns={{ xs: 4, sm: 8, md: 12 }}
+              margin={2}
+              alignItems="center"
+            >
+              <SelectComponent
+                label="Marca"
+                value={brand}
+                options={brandsOptions}
+                handleChange={(e) => {
+                  handleChangeBrand(e.target.value);
+                }}
+                minWidth={350}
+                margin={1}
+              />
+              <SelectComponent
+                label="Modelo"
+                value={model}
+                options={modelsOptions}
+                handleChange={(e) => {
+                  handleChangeModel(e.target.value);
+                }}
+                minWidth={350}
+                msgNone="Seleciona uma marca"
+                margin={1}
+              />
 
-            <SelectComponent
-              label="Ano"
-              value={year}
-              options={yearsOptions}
-              handleChange={(e) => {
-                handleChangeYear(e.target.value);
-              }}
-              minWidth={350}
-              msgNone="Seleciona um modelo e uma marca"
-              margin={1}
-            />
-          </Grid>
-          {/* {valuesVehicle.price || ''} */}
-          <Stack margin={3} alignItems="center">
-            <Button variant="contained">Consultar Preço</Button>
-          </Stack>
-          {loading ? (
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            ""
-          )}
-        </Card>
+              <SelectComponent
+                label="Ano"
+                value={year}
+                options={yearsOptions}
+                handleChange={(e) => {
+                  handleChangeYear(e.target.value);
+                }}
+                minWidth={350}
+                msgNone="Seleciona um modelo e uma marca"
+                margin={1}
+              />
+            </Grid>
+            <Stack margin={3} alignItems="center">
+              <Button variant="contained" onClick={() => { showResult() }}>Consultar Preço</Button>
+            </Stack>
+          </Card>
+        ) : (
+          <Card>
+            <Title>Tabela Fipe </Title>
+            <SubTitle>{valuesVehicle?.brand}, {valuesVehicle?.model} - Ano {valuesVehicle?.yearModel}  </SubTitle>
+            <h3>Ficha técnica:</h3>
+            <List sx={{ width: '100%', maxWidth: 360 }} >
+              <ListItem alignItems="flex-start">
+                <ListItemAvatar >
+                  <Avatar alt="Remy Sharp"  > <Typography
+                    sx={{ display: 'inline' }}
+                    component="span"
+                    variant="subtitle1"
+                    color="primary">P</Typography></Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary="Preço"
+                  secondary={
+                    <React.Fragment>
+                      <Typography
+                        sx={{ display: 'inline' }}
+                        component="span"
+                        variant="subtitle1"
+                        color="primary"
+                      >
+                        {valuesVehicle?.price}
+                      </Typography>
+                    </React.Fragment>
+                  }
+                />
+              </ListItem>
+              <Divider variant="inset" component="li" />
+              <ListItem alignItems="flex-start">
+                <ListItemAvatar>
+                  <Avatar alt="Remy Sharp"  > <Typography
+                    sx={{ display: 'inline' }}
+                    component="span"
+                    variant="subtitle1"
+                    color="primary"
+                  >C</Typography></Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary="Combustível:"
+                  secondary={
+                    <React.Fragment>
+                      <Typography
+                        sx={{ display: 'inline' }}
+                        component="span"
+                        variant="subtitle1"
+                        color="primary"
+                      >
+                        {valuesVehicle?.fuel}
+                      </Typography>
+                    </React.Fragment>
+                  }
+                />
+              </ListItem>
+              <Divider variant="inset" component="li" />
+              <ListItem alignItems="flex-start">
+                <ListItemAvatar>
+                  <Avatar alt="Remy Sharp"  > <Typography
+                    sx={{ display: 'inline' }}
+                    component="span"
+                    variant="subtitle1"
+                    color="primary"
+                  >M</Typography></Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary="Mês de referência"
+                  color="primary"
+                  secondary={
+                    <React.Fragment>
+                      <Typography
+                        sx={{ display: 'inline' }}
+                        component="span"
+                        variant="subtitle1"
+                        color="primary"
+                      >
+                        {valuesVehicle?.mounthReference}
+                      </Typography>
+                    </React.Fragment>
+                  }
+                />
+              </ListItem>
+            </List>
+            <Button fullWidth variant="contained" onClick={() => { back() }}>Voltar</Button>
+          </Card>
+        )
+        }
+
       </Stack>
-    </ContainerMain>
+    </ContainerMain >
   );
 }
 export const getServerSideProps = async () => {
-  const response = await axios.get(
-    `https://parallelum.com.br/fipe/api/v1/carros/marcas`
-  );
-  let brands: Array<ISelectOptions> = [];
-  if (response && response.data != undefined && response.data.length > 0) {
-    const data = response.data.map((x: any) => ({
-      value: x.codigo,
-      label: x.nome,
-    }));
-    brands = await data;
-  }
+  const brands = await FipeService.loadBrandsService("carros");
   return { props: { brands } };
 };
 export default Fipe;

@@ -1,4 +1,3 @@
-export type IResponseModel = {
-  codigo: string;
-  nome: string;
-};
+import { IResponseSelect } from "./IResponseSelect";
+
+export type IResponseModel = IResponseSelect & {};

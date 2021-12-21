@@ -1,6 +1,6 @@
 export type IValuesVehicle = {
   price?: string;
-  branch?: string;
+  brand?: string;
   model?: string;
   yearModel?: string;
   fuel?: string;

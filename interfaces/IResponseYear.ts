@@ -1,4 +1,3 @@
-export type IResponseYear = {
-  codigo: string;
-  nome: string;
-};
+import { IResponseSelect } from "./IResponseSelect";
+
+export type IResponseYear = IResponseSelect & {};
