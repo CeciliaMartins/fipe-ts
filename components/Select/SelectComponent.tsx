@@ -22,12 +22,11 @@ export default function SelectComponent({
     value,
     handleChange,
     minWidth,
-    margin,
     msgNone,
 }: Props) {
     return (
         <>
-            <FormControl sx={{ m: margin, minWidth: minWidth }}>
+            <FormControl sx={{ m: 1, minWidth: minWidth }}>
                 <InputLabel id="demo-simple-select-autowidth-label">{label}</InputLabel>
                 <Select
                     labelId="demo-simple-select-autowidth-label"
