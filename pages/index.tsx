@@ -257,8 +257,13 @@ function Fipe({ brands }: { brands: Array<ISelectOptions> }) {
     </ContainerMain >
   );
 }
-export const getServerSideProps = async () => {
+export const getStaticProps = async () => {
   const brands = await FipeService.loadBrandsService("carros");
+  if (!brands) {
+    return {
+      notFound: true
+    }
+  }
   return { props: { brands } };
 };
 export default Fipe;
