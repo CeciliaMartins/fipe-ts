@@ -1,12 +1,27 @@
-import SelectComponent from "../components/Select/SelectComponent";
 import React from "react";
-import { Box, CircularProgress, Divider, Button, List, ListItem, Grid, Typography, ListItemText, Avatar, ListItemAvatar } from "@mui/material";
-import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
-import { ISelectOptions } from "../interfaces/ISelectOptions";
 import styled from "styled-components";
-import { FipeService } from '../services/index'
+
+//atoms
+import SelectComponent from "../components/atoms/Select/SelectComponent";
+import CardComponent from "../components/atoms/Card/CardComponent";
+import TitleComponent from "../components/atoms/Title/TitleComponent";
+import SubTitleComponent from "../components/atoms/SubTitle/SubTitleComponent";
+import TextComponent from "components/atoms/Text/TextComponent";
+
+//molecules
+import ListItemInfo from "../components/molecules/ListItemInfo/ListItemInfo";
+import LoadingComponent from "../components/molecules/Loading/Loading";
+
+//material-ui
+import { Button, List, Grid, Chip, Stack } from "@mui/material";
+
+//interfaces
+import { ISelectOptions } from "../interfaces/ISelectOptions";
 import { IValuesVehicle } from "interfaces/IValuesVehicle";
+import { IInfosResult } from "interfaces/IInfosResult";
+
+//services
+import { FipeService } from '../services/index'
 
 function Fipe({ brands }: { brands: Array<ISelectOptions> }) {
   const filters: Array<ISelectOptions> = [
@@ -20,14 +35,13 @@ function Fipe({ brands }: { brands: Array<ISelectOptions> }) {
   const [model, setModel] = React.useState("");
   const [year, setYear] = React.useState("");
 
-
-
-  const [valuesVehicle, setValuesVehicle] = React.useState<IValuesVehicle | undefined>({});
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState<boolean | undefined>(false);
   const [opacityCard, setOpacity] = React.useState(false);
   const [filter, setFilter] = React.useState("carros");
   const [showResultCard, setShowResultCard] = React.useState(false);
   const [isDisabled, setDisabledButton] = React.useState(true);
+  const [valuesResult, setInfosResult] = React.useState<Array<IInfosResult> | undefined>([]);
+  const [titleInfos, setTitleInfos] = React.useState<string | undefined>("");
 
   const [brand, setBrand] = React.useState("");
   let brandRef = React.useRef("");
@@ -67,9 +81,29 @@ function Fipe({ brands }: { brands: Array<ISelectOptions> }) {
     setLoading(true);
     setOpacity(true);
     const data: IValuesVehicle = await FipeService.loadPriceVehiclesService(filter, brand, model, year);
-    setValuesVehicle(data);
     setLoading(false);
     setOpacity(false);
+
+    const title: string = `${data?.brand}, ${data?.model} - Ano ${data?.yearModel}`;
+    setTitleInfos(title);
+    const infos: Array<IInfosResult> = [
+      {
+        firstLetter: 'P',
+        titlePrimary: 'Preço',
+        value: data.price
+      },
+      {
+        firstLetter: 'C',
+        titlePrimary: 'Combustível',
+        value: data.fuel
+      },
+      {
+        firstLetter: 'M',
+        titlePrimary: 'Mês de referência',
+        value: data.mounthReference
+      }
+    ]
+    setInfosResult(infos);
   };
 
   const clearFields = () => {
@@ -79,7 +113,6 @@ function Fipe({ brands }: { brands: Array<ISelectOptions> }) {
     setModel("");
     setYear("");
     setBrand("");
-    setValuesVehicle({});
     setBrandsOptions([]);
     setModelsOptions([]);
     setYearsOptions([]);
@@ -97,8 +130,6 @@ function Fipe({ brands }: { brands: Array<ISelectOptions> }) {
     setFilter(value);
     loadBrands(value);
     EnableButton();
-
-
   };
 
   const handleChangeModel = (value: string) => {
@@ -135,96 +166,23 @@ function Fipe({ brands }: { brands: Array<ISelectOptions> }) {
     else setDisabledButton(true);
   }
 
+
   const ContainerMain = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 5%;
-    `;
-
-  const Title = styled.div`
-    font-size: 40px;
-    font-weight: bold;
-    line-height: 1;
-    color: rgb(66, 66, 66);
-    width: 100%;
-    text-align: center;
-    margin-bottom: 2%;
-    @media(max-width: 700px) {
-      font-size: 30px;
-
-  }
-    `;
-  const SubTitle = styled.div`
-    font-size: 30px;
-    font-weight: bold;
-    line-height: 1;
-    color: rgb(66, 66, 66);
-    width: 100%;
-    text-align: center;
-    margin-bottom: 2%;
-    @media(max-width: 700px) {
-      font-size: 20px;
-
-  }
-    `;
-
-  const Card = styled.div`
-    padding: 30px;
-    border-radius: 4px;
-    margin-bottom: 24px;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    background:  ${opacityCard == true ? '#ebebeb' : 'white'};
-    opacity = ${opacityCard == true ? 0.1 : 1};
-    pointer-events: ${opacityCard == true ? 'none' : ''};
-
-  @media(max-width: 700px) {
-    width: 95%;
-    height: 95%;
-    padding: 10px;
-    margin-bottom: 2px;
-  }
+  display: flex;
+  align-items: center;
+  justify - content: center;
+  margin: 5%;
   `;
-
-  const Text = styled.div`
-  font-size: 20px;
-  color: #4443bc;
-  font-weight: bold;
-  margin-top: 6%;
-  margin-bottom: 3%;
-  text-align: center;
-  @media(max-width: 700px) {
-      font-size: 10px;
-
-  }
-  `;
-
   return (
     <ContainerMain>
       <Stack spacing={1} alignItems="center">
         {showResultCard == false ? (
           <>
-            {loading == true ? (
-              <Box sx={{
-                zIndex: 1,
-                position: 'absolute',
-                width: '100%',
-                height: '200px',
-              }}>
-                <CircularProgress sx={{
-                  color: '#00c5ff',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  marginTop: '200px',
-                  marginLeft: '50%',
-                }} />
-              </Box>
-            ) : ""}
-            <Card >
-              <Title>Tabela Fipe de Carros </Title>
-              <SubTitle>Consulte um valor de um carro de forma gratuita </SubTitle>
-              <Text>Qual veículo você gostaria de comprar ou vender?</Text>
+            <LoadingComponent loading={loading} />
+            <CardComponent opacityCard={opacityCard}>
+              <TitleComponent description="Tabela Fipe de Carros" />
+              <SubTitleComponent description="Consulte um valor de um carro de forma gratuita" />
+              <TextComponent description="Qual veículo você gostaria de comprar ou vender?" />
               <Stack spacing={1} alignItems="center" marginBottom={4}>
                 <Stack direction="row" spacing={1}>
                   {filters.map((ftr: ISelectOptions, i: number) => (
@@ -281,93 +239,17 @@ function Fipe({ brands }: { brands: Array<ISelectOptions> }) {
               <Stack margin={3} alignItems="center">
                 <Button variant="contained" onClick={() => { showResult(); }} disabled={isDisabled}>Consultar Preço</Button>
               </Stack>
-            </Card></>
+            </CardComponent>
+          </>
         ) : (
-          <Card>
-            <Title>Tabela Fipe</Title>
-            <SubTitle>{valuesVehicle?.brand}, {valuesVehicle?.model} - Ano {valuesVehicle?.yearModel}  </SubTitle>
-            <h3>Ficha técnica:</h3>
+          <CardComponent >
+            <TitleComponent description="Tabela Fipe" />
+            <SubTitleComponent description={titleInfos} />
             <List sx={{ width: '100%', maxWidth: 360 }} >
-              <ListItem alignItems="flex-start">
-                <ListItemAvatar >
-                  <Avatar alt="Remy Sharp"  > <Typography
-                    sx={{ display: 'inline' }}
-                    component="span"
-                    variant="subtitle1"
-                    color="primary">P</Typography></Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary="Preço"
-                  secondary={
-                    <React.Fragment>
-                      <Typography
-                        sx={{ display: 'inline' }}
-                        component="span"
-                        variant="subtitle1"
-                        color="primary"
-                      >
-                        {valuesVehicle?.price}
-                      </Typography>
-                    </React.Fragment>
-                  }
-                />
-              </ListItem>
-              <Divider variant="inset" component="li" />
-              <ListItem alignItems="flex-start">
-                <ListItemAvatar>
-                  <Avatar alt="Remy Sharp"  > <Typography
-                    sx={{ display: 'inline' }}
-                    component="span"
-                    variant="subtitle1"
-                    color="primary"
-                  >C</Typography></Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary="Combustível:"
-                  secondary={
-                    <React.Fragment>
-                      <Typography
-                        sx={{ display: 'inline' }}
-                        component="span"
-                        variant="subtitle1"
-                        color="primary"
-                      >
-                        {valuesVehicle?.fuel}
-                      </Typography>
-                    </React.Fragment>
-                  }
-                />
-              </ListItem>
-              <Divider variant="inset" component="li" />
-              <ListItem alignItems="flex-start">
-                <ListItemAvatar>
-                  <Avatar alt="Remy Sharp"  > <Typography
-                    sx={{ display: 'inline' }}
-                    component="span"
-                    variant="subtitle1"
-                    color="primary"
-                  >M</Typography></Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary="Mês de referência"
-                  color="primary"
-                  secondary={
-                    <React.Fragment>
-                      <Typography
-                        sx={{ display: 'inline' }}
-                        component="span"
-                        variant="subtitle1"
-                        color="primary"
-                      >
-                        {valuesVehicle?.mounthReference}
-                      </Typography>
-                    </React.Fragment>
-                  }
-                />
-              </ListItem>
+              <ListItemInfo infos={valuesResult} />
             </List>
             <Button fullWidth variant="contained" onClick={() => { back() }}>Voltar</Button>
-          </Card>
+          </CardComponent>
         )
         }
 
