@@ -28,7 +28,7 @@
     "strictNullChecks": true,
     "baseUrl": ".",
     "paths": {
-      // "@components/*": ["./../../components/*"],
+      "@components/*": ["./../../components/*"],
       "@interfaces/*": ["./intefaces/*"],
     }
   },

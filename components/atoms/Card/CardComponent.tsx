@@ -20,7 +20,6 @@ const Card = styled.div<Props>`
 type Props = {
     opacityCard?: boolean;
     children: any
-
 }
 
 

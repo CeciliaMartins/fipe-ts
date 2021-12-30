@@ -4,8 +4,6 @@ type Props = {
     loading?: boolean
 }
 function Loading({ loading }: Props) {
-    console.log('loading', loading);
-
     let component;
     if (loading == true) {
         component = <Box sx={{
